@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { Product } from '@/components/ProductCard'
 
 export interface Message {
   id: string
@@ -10,15 +11,18 @@ interface AgentStore {
   messages: Message[]
   step: number
   isOpen: boolean
+  products: Product[]
   addMessage: (msg: Omit<Message, 'id'>) => void
   setStep: (step: number) => void
   setIsOpen: (open: boolean) => void
+  setProducts: (products: Product[]) => void
 }
 
 export const useAgentStore = create<AgentStore>((set) => ({
   messages: [],
   step: 0,
   isOpen: false,
+  products: [],
   addMessage: (msg) =>
     set((state) => ({
       messages: [
@@ -28,4 +32,5 @@ export const useAgentStore = create<AgentStore>((set) => ({
     })),
   setStep: (step) => set({ step }),
   setIsOpen: (isOpen) => set({ isOpen }),
+  setProducts: (products) => set({ products }),
 })) 

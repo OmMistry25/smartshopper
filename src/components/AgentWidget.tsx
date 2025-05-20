@@ -1,9 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAgentStore } from '@/state/agentStore'
+import ChatBubble from './ChatBubble'
 
 export default function AgentWidget() {
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, setIsOpen, messages, addMessage } = useAgentStore()
+
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      addMessage({ text: 'Hi! What are you looking for today?', sentByUser: false })
+    }
+  }, [isOpen, messages.length, addMessage])
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
@@ -52,7 +60,9 @@ export default function AgentWidget() {
             </button>
           </div>
           <div className="flex-1 p-4 overflow-y-auto">
-            {/* Chat messages will go here */}
+            {messages.map((msg) => (
+              <ChatBubble key={msg.id} message={msg.text} sentByUser={msg.sentByUser} />
+            ))}
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '@/state/agentStore'
 import ChatBubble from './ChatBubble'
+import { getNextPrompt } from '@/lib/chatEngine'
 
 export default function AgentWidget() {
   const { isOpen, setIsOpen, messages, addMessage } = useAgentStore()
@@ -74,6 +75,13 @@ export default function AgentWidget() {
               if (value) {
                 addMessage({ text: value, sentByUser: true });
                 input.value = '';
+                setTimeout(() => {
+                  const userAnswers = useAgentStore.getState().messages
+                    .filter(m => m.sentByUser)
+                    .map(m => m.text);
+                  const agentReply = getNextPrompt(userAnswers);
+                  addMessage({ text: agentReply, sentByUser: false });
+                }, 100);
               }
             }}
           >

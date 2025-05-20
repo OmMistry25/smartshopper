@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '@/state/agentStore'
 import ChatBubble from './ChatBubble'
-import { getNextPrompt } from '@/lib/chatEngine'
+import { getNextPrompt, findProductsByKeyword } from '@/lib/chatEngine'
+import ProductCard from './ProductCard'
 
 export default function AgentWidget() {
-  const { isOpen, setIsOpen, messages, addMessage } = useAgentStore()
+  const { isOpen, setIsOpen, messages, addMessage, products, setProducts } = useAgentStore()
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -67,7 +68,7 @@ export default function AgentWidget() {
           </div>
           <form
             className="p-4 border-t flex gap-2"
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault();
               const form = e.target as HTMLFormElement;
               const input = form.elements.namedItem('userInput') as HTMLInputElement;
@@ -75,12 +76,18 @@ export default function AgentWidget() {
               if (value) {
                 addMessage({ text: value, sentByUser: true });
                 input.value = '';
-                setTimeout(() => {
+                setTimeout(async () => {
                   const userAnswers = useAgentStore.getState().messages
                     .filter(m => m.sentByUser)
                     .map(m => m.text);
                   const agentReply = getNextPrompt(userAnswers);
                   addMessage({ text: agentReply, sentByUser: false });
+                  // Product search: use last user message as keyword
+                  const keyword = userAnswers[userAnswers.length - 1] || '';
+                  if (keyword) {
+                    const found = await findProductsByKeyword(keyword);
+                    setProducts(found);
+                  }
                 }, 100);
               }
             }}
@@ -99,6 +106,13 @@ export default function AgentWidget() {
               Send
             </button>
           </form>
+          {products.length > 0 && (
+            <div className="p-4 border-t flex flex-wrap gap-4 justify-center bg-gray-50">
+              {products.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

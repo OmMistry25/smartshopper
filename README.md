@@ -93,13 +93,13 @@ http://localhost:3000
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 PRs welcome! If you have ideas for extending the agent, improving the logic flow, or adding connectors (e.g., Shopify, Stripe), feel free to fork and submit.
 
 ---
 
-## 🛡️ License
+## License
 
 MIT — use freely, attribute kindly.
 

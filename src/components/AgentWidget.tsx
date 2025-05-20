@@ -64,6 +64,33 @@ export default function AgentWidget() {
               <ChatBubble key={msg.id} message={msg.text} sentByUser={msg.sentByUser} />
             ))}
           </div>
+          <form
+            className="p-4 border-t flex gap-2"
+            onSubmit={e => {
+              e.preventDefault();
+              const form = e.target as HTMLFormElement;
+              const input = form.elements.namedItem('userInput') as HTMLInputElement;
+              const value = input.value.trim();
+              if (value) {
+                addMessage({ text: value, sentByUser: true });
+                input.value = '';
+              }
+            }}
+          >
+            <input
+              name="userInput"
+              type="text"
+              autoComplete="off"
+              placeholder="Type your message..."
+              className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Send
+            </button>
+          </form>
         </div>
       )}
     </div>

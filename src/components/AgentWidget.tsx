@@ -6,6 +6,14 @@ import ChatBubble from './ChatBubble'
 import { getNextPrompt, findProductsByKeyword } from '@/lib/chatEngine'
 import ProductCard from './ProductCard'
 
+async function logInteraction({ userId, question, response }: { userId?: string | null, question: string, response: string }) {
+  await fetch('/api/logInteraction', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, question, response }),
+  })
+}
+
 export default function AgentWidget() {
   const { isOpen, setIsOpen, messages, addMessage, products, setProducts } = useAgentStore()
 
@@ -76,12 +84,16 @@ export default function AgentWidget() {
               if (value) {
                 addMessage({ text: value, sentByUser: true });
                 input.value = '';
+                // Log user message
+                logInteraction({ userId: null, question: value, response: '' });
                 setTimeout(async () => {
                   const userAnswers = useAgentStore.getState().messages
                     .filter(m => m.sentByUser)
                     .map(m => m.text);
                   const agentReply = getNextPrompt(userAnswers);
                   addMessage({ text: agentReply, sentByUser: false });
+                  // Log agent reply
+                  logInteraction({ userId: null, question: value, response: agentReply });
                   // Product search: use last user message as keyword
                   const keyword = userAnswers[userAnswers.length - 1] || '';
                   if (keyword) {

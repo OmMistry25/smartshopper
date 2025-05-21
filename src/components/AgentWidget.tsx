@@ -8,19 +8,22 @@ import { getNextPrompt, IntentObject } from '@/lib/chatEngine'
 import type { Message } from '@/state/agentStore'
 import { getShopifyProductUrl } from '@/lib/shopify/shopifyClient'
 
-async function logInteraction({ userId, question, response, intent, followUp }: { userId?: string | null, question: string, response: string, intent: any, followUp: string }) {
-  await fetch('/api/logInteraction', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, question, response, intent, followUp }),
-  })
-}
+// async function logInteraction({ userId, question, response, intent, followUp }: { userId?: string | null, question: string, response: string, intent: any, followUp: string }) {
+//   await fetch('/api/logInteraction', {
+//     method: 'POST',
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify({ userId, question, response, intent, followUp }),
+//   })
+// }
 
 export const AgentWidget = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const { messages, addMessage, setProducts, products } = useAgentStore()
   const chatContainerRef = useRef<HTMLDivElement>(null)
+
+  // Hardcode the shop domain for now for testing purposes
+  const shopDomain = 'kks3tj-31.myshopify.com'; // <<<<<<----- REPLACE THIS IN PRODUCTION
 
   // State to hold the current intent
   const [currentIntent, setCurrentIntent] = useState<IntentObject>({
@@ -56,8 +59,8 @@ export const AgentWidget = () => {
       const messagesForPrompt = messages.map(msg => ({ text: msg.text, sender: msg.sentByUser ? 'user' : 'agent' as 'user' | 'agent' }))
       const userMessageForPrompt = { text: userMessage.text, sender: 'user' as 'user' | 'agent' }
 
-      // Call getNextPrompt with the new message and current intent
-      const { prompt, products, updatedIntent } = await getNextPrompt([...messagesForPrompt, userMessageForPrompt], currentIntent)
+      // Call getNextPrompt with the new message, current intent, and shopDomain
+      const { prompt, products, updatedIntent } = await getNextPrompt([...messagesForPrompt, userMessageForPrompt], currentIntent, shopDomain);
 
       // Update the current intent state
       setCurrentIntent(updatedIntent)

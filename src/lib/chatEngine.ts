@@ -18,7 +18,8 @@ function mergeIntents(currentIntent: IntentObject, newIntent: IntentObject): Int
 
 export async function getNextPrompt(
   messages: { text: string; sender: 'user' | 'agent' }[],
-  currentIntent: IntentObject
+  currentIntent: IntentObject,
+  shopDomain: string // Accept shopDomain as a parameter
 ): Promise<{ prompt: string; products?: Product[]; updatedIntent: IntentObject }> {
   // Get the last user message
   const lastUserMessage = messages.filter(msg => msg.sender === 'user').pop();
@@ -32,8 +33,8 @@ export async function getNextPrompt(
 
   console.log('Updated Intent:', updatedIntent);
 
-  // Search for products based on the updated intent
-  const { products, availableAttributes } = await searchProductsByIntent(updatedIntent);
+  // Search for products based on the updated intent, passing shopDomain
+  const { products, availableAttributes } = await searchProductsByIntent(shopDomain, updatedIntent);
   console.log('Products found:', products);
   console.log('Available attributes:', availableAttributes);
 

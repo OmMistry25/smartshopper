@@ -11,14 +11,20 @@ import type { IntentObject } from '@/lib/nlu/intentParser'
 // function formatShopifyProduct(rawProduct: any): Product | null { ... }
 
 // Basic function to get all products (might not be needed, keep for now)
+// Note: This would ideally also require a shopDomain
 export async function getProducts(): Promise<Product[]> {
   console.log('Client-side getProducts called (calling API route)');
+  // For now, hardcoding a placeholder shop domain for testing.
+  // You will need to replace 'YOUR_SHOPIFY_SHOP_DOMAIN' with the actual shop domain.
+  const shopDomain = 'kks3tj-31.myshopify.com'; // <<<<<<----- REPLACED THIS
+
   try {
     const response = await fetch('/api/shopify/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Sending an empty intent or a broad one to get all products (adjust as needed)
-      body: JSON.stringify({ intent: {} }), 
+      // Sending an empty intent or a broad one to get all products
+      // Now also sending shopDomain
+      body: JSON.stringify({ shopDomain: shopDomain, intent: {} }),
     });
     if (!response.ok) {
         console.error(`API Route Error: ${response.status} ${response.statusText}`);
@@ -26,9 +32,9 @@ export async function getProducts(): Promise<Product[]> {
         console.error('Response body:', errorBody);
         return [];
     }
-    const products: Product[] = await response.json();
-    console.log('Client-side fetched products from API route:', products);
-    return products;
+    const data: { products: Product[], availableAttributes: string[] } = await response.json();
+    console.log('Client-side fetched products from API route:', data.products);
+    return data.products;
   } catch (error) {
       console.error('Client-side error fetching products from API route:', error);
       return [];
@@ -36,13 +42,15 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 // Function to search products based on intent (calls our API route)
-export async function searchProductsByIntent(intent: IntentObject): Promise<{ products: Product[], availableAttributes: string[] }> {
-  console.log('Client-side searchProductsByIntent called (calling API route)', intent);
+// Now accepts shopDomain
+export async function searchProductsByIntent(shopDomain: string, intent: IntentObject): Promise<{ products: Product[], availableAttributes: string[] }> {
+  console.log('Client-side searchProductsByIntent called (calling API route)', { shopDomain, intent });
   try {
     const response = await fetch('/api/shopify/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ intent }),
+      // Sending shopDomain and intent
+      body: JSON.stringify({ shopDomain: shopDomain, intent }),
     });
 
     if (!response.ok) {
@@ -64,7 +72,7 @@ export async function searchProductsByIntent(intent: IntentObject): Promise<{ pr
 
 // Function to generate a public Shopify product URL (remains client-side)
 export function getShopifyProductUrl(productHandle: string): string | null {
-  const shopifyStoreUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL;
+  const shopifyStoreUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL; // Using NEXT_PUBLIC for client-side URL construction
   if (!shopifyStoreUrl) {
     console.error('Shopify store URL not set in .env.local');
     return null;

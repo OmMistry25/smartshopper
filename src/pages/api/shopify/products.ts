@@ -1,26 +1,28 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import type { IntentObject } from '@/lib/nlu/intentParser'
 import type { Product } from '@/types/product'
+import { supabase } from '@/lib/supabaseClient'; // Import Supabase client
 
-// Read environment variables without NEXT_PUBLIC_ prefix for server-side use
-const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL;
-const shopifyAccessToken = process.env.SHOPIFY_ACCESS_TOKEN; // Keep this server-only!
+// Read environment variables (Shopify API Key/Secret are needed for token exchange, not direct product fetch)
+// const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL;
+// const shopifyAccessToken = process.env.SHOPIFY_ACCESS_TOKEN; // This token is now fetched from DB
 const apiVersion = '2024-01';
 
-async function fetchShopifyProducts(): Promise<any[]> {
+// Updated to accept shop_domain and access_token
+async function fetchShopifyProducts(shop_domain: string, access_token: string): Promise<any[]> {
   // This function now runs server-side via the API route
-  if (!shopifyStoreUrl || !shopifyAccessToken) {
-    console.error('Shopify API credentials not set for server-side fetch');
+  if (!shop_domain || !access_token) {
+    console.error('Shopify credentials (domain or token) not provided for fetch');
     return [];
   }
 
-  const url = `${shopifyStoreUrl}/admin/api/${apiVersion}/products.json`;
+  const url = `https://${shop_domain}/admin/api/${apiVersion}/products.json`;
 
   try {
     console.log(`Server-side fetching products from: ${url}`);
     const response = await fetch(url, {
       headers: {
-        'X-Shopify-Access-Token': shopifyAccessToken,
+        'X-Shopify-Access-Token': access_token,
       },
     });
 
@@ -48,7 +50,7 @@ function formatShopifyProduct(rawProduct: any): Product | null {
     console.warn('Server-side skipping malformed Shopify product (missing id, title, variants, or handle):', rawProduct);
     return null;
   }
-  
+
   // Use the price of the first variant for simplicity
   const price = parseFloat(rawProduct.variants[0].price);
   if (isNaN(price)) {
@@ -73,14 +75,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { intent } = req.body as { intent: IntentObject };
-  console.log('API Route received intent:', intent); // Log the received intent
+  // Expecting shopDomain and intent in the request body
+  const { shopDomain, intent } = req.body as { shopDomain: string, intent: IntentObject };
+  console.log('API Route received request for shop:', shopDomain, 'with intent:', intent);
 
-  if (!intent) {
-      return res.status(400).json({ error: 'Missing intent in request body' });
+  if (!shopDomain) {
+      return res.status(400).json({ error: 'Missing shopDomain in request body' });
   }
 
-  const allShopifyProducts = await fetchShopifyProducts();
+  // Retrieve access token from database
+  const { data: shopData, error: dbError } = await supabase
+    .from('shops')
+    .select('access_token')
+    .eq('shop_domain', shopDomain)
+    .single();
+
+  if (dbError || !shopData) {
+    console.error('Error fetching access token for shop:', shopDomain, dbError);
+    return res.status(404).json({ error: 'Shopify access token not found for this shop.' });
+  }
+
+  const accessToken = shopData.access_token;
+
+  // Fetch all products for the shop using the stored access token
+  const allShopifyProducts = await fetchShopifyProducts(shopDomain, accessToken);
 
   // Filter products based on intent (basic filtering on server-side now)
   const filteredProducts = allShopifyProducts.filter(product => {
@@ -123,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return matches;
   });
 
-  console.log('Server-side Filtered Shopify Products Count:', filteredProducts.length); // Log count of filtered products
+  console.log('Server-side Filtered Shopify Products Count:', filteredProducts.length);
 
   // Collect available attributes from filtered products
   const availableAttributes = new Set<string>();

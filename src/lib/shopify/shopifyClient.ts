@@ -1,135 +1,70 @@
 import type { Product } from '@/types/product'
 import type { IntentObject } from '@/lib/nlu/intentParser'
 
-const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL;
-const shopifyAccessToken = process.env.SHOPIFY_ACCESS_TOKEN;
-const apiVersion = '2024-01';
+// This client-side file now calls our API route instead of Shopify directly
 
-async function fetchShopifyProducts(): Promise<any[]> {
-  if (!shopifyStoreUrl || !shopifyAccessToken) {
-    console.error('Shopify API credentials not set in .env.local');
-    return [];
-  }
+// Removed: Direct Shopify API credentials and fetch logic
+// const shopifyStoreUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL;
+// const shopifyAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_ACCESS_TOKEN; // This token is now server-only
+// const apiVersion = '2024-01';
+// async function fetchShopifyProducts(): Promise<any[]> { ... }
+// function formatShopifyProduct(rawProduct: any): Product | null { ... }
 
-  const url = `${shopifyStoreUrl}/admin/api/${apiVersion}/products.json`;
-
+// Basic function to get all products (might not be needed, keep for now)
+export async function getProducts(): Promise<Product[]> {
+  console.log('Client-side getProducts called (calling API route)');
   try {
-    console.log(`Fetching products from: ${url}`);
-    const response = await fetch(url, {
-      headers: {
-        'X-Shopify-Access-Token': shopifyAccessToken,
-      },
+    const response = await fetch('/api/shopify/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Sending an empty intent or a broad one to get all products (adjust as needed)
+      body: JSON.stringify({ intent: {} }), 
+    });
+    if (!response.ok) {
+        console.error(`API Route Error: ${response.status} ${response.statusText}`);
+        const errorBody = await response.text();
+        console.error('Response body:', errorBody);
+        return [];
+    }
+    const products: Product[] = await response.json();
+    console.log('Client-side fetched products from API route:', products);
+    return products;
+  } catch (error) {
+      console.error('Client-side error fetching products from API route:', error);
+      return [];
+  }
+}
+
+// Function to search products based on intent (calls our API route)
+export async function searchProductsByIntent(intent: IntentObject): Promise<{ products: Product[], availableAttributes: string[] }> {
+  console.log('Client-side searchProductsByIntent called (calling API route)', intent);
+  try {
+    const response = await fetch('/api/shopify/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent }),
     });
 
     if (!response.ok) {
-      console.error(`Shopify API Error: ${response.status} ${response.statusText}`);
+      console.error(`API Route Error: ${response.status} ${response.statusText}`);
       const errorBody = await response.text();
       console.error('Response body:', errorBody);
-      return [];
+      return { products: [], availableAttributes: [] };
     }
 
-    const data = await response.json();
-    return data.products || [];
+    const data: { products: Product[], availableAttributes: string[] } = await response.json();
+    console.log('Client-side fetched products and attributes from API route:', data);
+    return data;
 
   } catch (error) {
-    console.error('Error fetching Shopify products:', error);
-    return [];
+    console.error('Client-side error fetching products from API route:', error);
+    return { products: [], availableAttributes: [] };
   }
 }
 
-// Helper to format raw Shopify product data to our Product interface
-function formatShopifyProduct(rawProduct: any): Product | null {
-  if (!rawProduct || !rawProduct.id || !rawProduct.title || !rawProduct.variants || rawProduct.variants.length === 0 || !rawProduct.handle) {
-    console.warn('Skipping malformed Shopify product (missing id, title, variants, or handle):', rawProduct);
-    return null;
-  }
-  
-  // Use the price of the first variant for simplicity
-  const price = parseFloat(rawProduct.variants[0].price);
-  if (isNaN(price)) {
-      console.warn('Skipping product with invalid price:', rawProduct);
-      return null;
-  }
-
-  return {
-    id: rawProduct.id.toString(), // Ensure ID is string
-    name: rawProduct.title,
-    category: rawProduct.product_type || 'Uncategorized', // Use product_type or default
-    price: price,
-    description: rawProduct.body_html || '',
-    image_url: (rawProduct.images && rawProduct.images.length > 0) ? rawProduct.images[0].src : undefined,
-    handle: rawProduct.handle, // Include the handle
-  };
-}
-
-// Basic function to get all products (will be updated later)
-export async function getProducts(): Promise<Product[]> {
- // This function might not be needed anymore if we always search by intent
- // For now, it calls the internal fetcher and formats results
-  const shopifyProducts = await fetchShopifyProducts();
-  const formattedProducts = shopifyProducts.map(formatShopifyProduct).filter((p): p is Product => p !== null);
-  console.log('Fetched and Formatted Shopify Products:', formattedProducts);
-  return formattedProducts;
-}
-
-// Function to search products based on intent
-export async function searchProductsByIntent(intent: IntentObject): Promise<Product[]> {
-  console.log('Shopify searchProductsByIntent called with intent:', intent);
-
-  const allShopifyProducts = await fetchShopifyProducts();
-
-  // Filter products based on intent (basic filtering for now)
-  const filteredProducts = allShopifyProducts.filter(product => {
-    let matches = true;
-
-    // Filter by category (using product_type for simplicity)
-    // Check if intent category is provided AND product_type exists and matches (case-insensitive, partial match)
-    if (intent.category) {
-      if (!product.product_type || !product.product_type.toLowerCase().includes(intent.category.toLowerCase())) {
-         matches = false;
-      }
-    }
-
-    // Filter by color (searching title or body_html) - only apply if color intent exists
-    if (intent.color) {
-        const colorMatch = product.title.toLowerCase().includes(intent.color.toLowerCase()) || 
-                           (product.body_html && product.body_html.toLowerCase().includes(intent.color.toLowerCase()));
-        matches = matches && colorMatch;
-    }
-
-    // Filter by size (searching title or body_html) - only apply if size intent exists
-    if (intent.size) {
-        const sizeMatch = product.title.toLowerCase().includes(intent.size.toLowerCase()) || 
-                          (product.body_html && product.body_html.toLowerCase().includes(intent.size.toLowerCase()));
-        matches = matches && sizeMatch;
-    }
-
-    // Filter by priceMax (checking if ANY variant price is under priceMax) - only apply if priceMax intent exists
-    // Ensure priceMax is a number and products have variants with prices
-    if (intent.priceMax !== null && !isNaN(intent.priceMax)) {
-        if (!product.variants || product.variants.length === 0 || !product.variants.some((variant: any) => parseFloat(variant.price) <= intent.priceMax!)){
-             matches = false;
-        }
-    }
-
-    return matches;
-  });
-
-  console.log('Filtered and Formatted Shopify Products:', filteredProducts);
-  // Format the filtered products before returning
-  const formattedFilteredProducts = filteredProducts.map(formatShopifyProduct).filter((p): p is Product => p !== null);
-  return formattedFilteredProducts;
-}
-
-// Basic function to search products by query (will be updated later)
-export async function searchProducts(query: string): Promise<Product[]> {
-  console.log(`Shopify searchProducts called with query: ${query} (placeholder)`);
-  // TODO: Implement Shopify Admin API search based on query or use getProducts with filtering
-  return []
-}
-
-// Function to generate a public Shopify product URL
+// Function to generate a public Shopify product URL (remains client-side)
 export function getShopifyProductUrl(productHandle: string): string | null {
+  const shopifyStoreUrl = process.env.NEXT_PUBLIC_SHOPIFY_STORE_URL;
   if (!shopifyStoreUrl) {
     console.error('Shopify store URL not set in .env.local');
     return null;

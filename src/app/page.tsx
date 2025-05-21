@@ -1,5 +1,5 @@
 import Image from "next/image";
-import AgentWidget from '@/components/AgentWidget'
+import { AgentWidget } from '@/components/AgentWidget'
 
 export default function Home() {
   return (

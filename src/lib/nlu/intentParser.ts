@@ -9,7 +9,7 @@ export interface IntentObject {
 
 export function parseIntent(message: string): IntentObject {
   // Simple regex/rules for demo purposes
-  const categoryMatch = message.match(/pants|shoes|dress|shirt|jacket|backpack|mat|lamp|bottle|phone|laptop|speaker|maker|mouse/i)
+  const categoryMatch = message.match(/pants|shoes|dress|shirt|jacket|backpack|mat|lamp|bottle|phone|laptop|speaker|maker|mouse|long sleeve shirt/i)
   const styleMatch = message.match(/baggy|slim|skinny|regular|running|portable|wireless|eco-friendly|non-slip|adjustable|insulated|ergonomic/i)
   const colorMatch = message.match(/red|blue|black|white|green|yellow|gray|grey|pink|purple|orange/i)
   const sizeMatch = message.match(/\b(xs|s|m|l|xl|xxl)\b/i)

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useAgentStore } from '@/state/agentStore'
 import ChatBubble from './ChatBubble'
-import { getNextPrompt, findProductsByKeyword } from '@/lib/chatEngine'
+import { getNextPrompt, findProductsByKeyword, findProductsByIntent } from '@/lib/chatEngine'
 import ProductCard from './ProductCard'
+import { parseIntent } from '@/lib/nlu/intentParser'
 
 async function logInteraction({ userId, question, response }: { userId?: string | null, question: string, response: string }) {
   await fetch('/api/logInteraction', {
@@ -90,16 +91,21 @@ export default function AgentWidget() {
                   const userAnswers = useAgentStore.getState().messages
                     .filter(m => m.sentByUser)
                     .map(m => m.text);
-                  const agentReply = getNextPrompt(userAnswers);
-                  addMessage({ text: agentReply, sentByUser: false });
-                  // Log agent reply
-                  logInteraction({ userId: null, question: value, response: agentReply });
-                  // Product search: use last user message as keyword
-                  const keyword = userAnswers[userAnswers.length - 1] || '';
-                  if (keyword) {
-                    const found = await findProductsByKeyword(keyword);
+                  const next = getNextPrompt(userAnswers);
+                  if (next === 'search') {
+                    const intent = parseIntent(userAnswers.join(' '));
+                    const found = await findProductsByIntent(intent);
                     setProducts(found);
+                    if (found.length > 0) {
+                      addMessage({ text: 'Here are some options for you!', sentByUser: false });
+                    } else {
+                      addMessage({ text: 'Sorry, product not available.', sentByUser: false });
+                    }
+                  } else {
+                    addMessage({ text: next, sentByUser: false });
                   }
+                  // Log agent reply
+                  logInteraction({ userId: null, question: value, response: next });
                 }, 100);
               }
             }}

@@ -1,6 +1,6 @@
 import { parseIntent, IntentObject } from './nlu/intentParser'
 import { getNextQuestion } from './nlu/questionPlanner'
-import { supabase } from './supabaseClient'
+import { searchProductsByIntent } from './shopify/shopifyClient'
 import type { Product } from '@/components/ProductCard'
 
 export function mergeIntents(intents: IntentObject[]): IntentObject {
@@ -36,22 +36,6 @@ export function getNextPrompt(prevAnswers: string[]): string {
 }
 
 export async function findProductsByIntent(intent: IntentObject): Promise<Product[]> {
-  let query = supabase.from('products').select('*')
-  if (intent.category) query = query.eq('category', intent.category)
-  if (intent.color) query = query.ilike('description', `%${intent.color}%`)
-  if (intent.size) query = query.ilike('description', `%${intent.size}%`)
-  if (intent.priceMax) query = query.lte('price', intent.priceMax)
-  const { data, error } = await query.limit(5)
-  if (error) return []
-  return data as Product[]
-}
-
-export async function findProductsByKeyword(keyword: string): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .ilike('name', `%${keyword}%`)
-    .limit(5)
-  if (error) return []
-  return data as Product[]
+  const shopifyProducts = await searchProductsByIntent(intent);
+  return shopifyProducts as Product[];
 } 

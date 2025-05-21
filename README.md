@@ -53,7 +53,7 @@ SmartShopper connects directly to your Shopify store through the Admin API.
 
 ---
 
-## 🔐 Secure by Design
+## Secure by Design
 
 - No customer or payment data is accessed
 - Token-based server-side communication
@@ -61,7 +61,7 @@ SmartShopper connects directly to your Shopify store through the Admin API.
 
 ---
 
-## 📦 Tech Behind the Scenes
+## Tech Behind the Scenes
 
 | Component      | Technology              |
 |----------------|--------------------------|

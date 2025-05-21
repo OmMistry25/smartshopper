@@ -5,7 +5,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-  const { userId, question, response: agentResponse } = req.body
+  const { userId, question, response: agentResponse, intent, followUp } = req.body
   if (!question || !agentResponse) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
@@ -14,6 +14,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user_id: userId || null,
       question,
       response: agentResponse,
+      intent: intent ? JSON.stringify(intent) : null,
+      follow_up: followUp || null,
     },
   ])
   if (error) {

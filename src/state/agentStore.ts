@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Product } from '@/components/ProductCard'
+import type { Product } from '@/types/product'
 
 export interface Message {
   id: string

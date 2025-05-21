@@ -1,4 +1,4 @@
-import type { Product } from '@/components/ProductCard'
+import type { Product } from '@/types/product'
 import type { IntentObject } from '@/lib/nlu/intentParser'
 
 const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL;
@@ -39,8 +39,8 @@ async function fetchShopifyProducts(): Promise<any[]> {
 
 // Helper to format raw Shopify product data to our Product interface
 function formatShopifyProduct(rawProduct: any): Product | null {
-  if (!rawProduct || !rawProduct.id || !rawProduct.title || !rawProduct.variants || rawProduct.variants.length === 0) {
-    console.warn('Skipping malformed Shopify product:', rawProduct);
+  if (!rawProduct || !rawProduct.id || !rawProduct.title || !rawProduct.variants || rawProduct.variants.length === 0 || !rawProduct.handle) {
+    console.warn('Skipping malformed Shopify product (missing id, title, variants, or handle):', rawProduct);
     return null;
   }
   
@@ -58,6 +58,7 @@ function formatShopifyProduct(rawProduct: any): Product | null {
     price: price,
     description: rawProduct.body_html || '',
     image_url: (rawProduct.images && rawProduct.images.length > 0) ? rawProduct.images[0].src : undefined,
+    handle: rawProduct.handle, // Include the handle
   };
 }
 

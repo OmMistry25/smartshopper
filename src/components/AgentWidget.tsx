@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useAgentStore } from '@/state/agentStore'
 import ChatBubble from './ChatBubble'
-import { getNextPrompt, findProductsByKeyword, findProductsByIntent } from '@/lib/chatEngine'
+import { getNextPrompt, findProductsByIntent, mergeIntents } from '@/lib/chatEngine'
 import ProductCard from './ProductCard'
 import { parseIntent } from '@/lib/nlu/intentParser'
+import { getShopifyProductUrl } from '@/lib/shopify/shopifyClient'
 
 async function logInteraction({ userId, question, response, intent, followUp }: { userId?: string | null, question: string, response: string, intent: any, followUp: string }) {
   await fetch('/api/logInteraction', {
@@ -152,14 +153,16 @@ export default function AgentWidget() {
                 ))}
               </div>
               {/* Smart navigation link */}
-              {mergedIntent.category && (
+              {products.length > 0 && products[0].handle && (
                 <div className="w-full text-center mt-2">
                   <a
-                    href={`/products/${mergedIntent.category}?${mergedIntent.color ? `color=${mergedIntent.color}&` : ''}${mergedIntent.size ? `size=${mergedIntent.size}` : ''}`}
+                    href={getShopifyProductUrl(products[0].handle)!}
                     className="text-blue-600 underline hover:text-blue-800 text-sm"
                     target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    Browse all {mergedIntent.category}
+                    View Product on Shopify
+                    {mergedIntent.category ? `: ${mergedIntent.category}` : ''}
                     {mergedIntent.color ? ` in ${mergedIntent.color}` : ''}
                     {mergedIntent.size ? `, size ${mergedIntent.size}` : ''}
                   </a>

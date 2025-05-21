@@ -1,13 +1,5 @@
 import React from 'react'
-
-export interface Product {
-  id: string
-  name: string
-  category: string
-  price: number
-  description?: string
-  image_url?: string
-}
+import type { Product } from '@/types/product'
 
 export default function ProductCard({ product }: { product: Product }) {
   return (

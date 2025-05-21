@@ -3,7 +3,7 @@ import { getNextQuestion } from './nlu/questionPlanner'
 import { supabase } from './supabaseClient'
 import type { Product } from '@/components/ProductCard'
 
-function mergeIntents(intents: IntentObject[]): IntentObject {
+export function mergeIntents(intents: IntentObject[]): IntentObject {
   const merged: IntentObject = {
     category: null,
     style: null,

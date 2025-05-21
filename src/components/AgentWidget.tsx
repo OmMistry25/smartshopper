@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAgentStore } from '@/state/agentStore'
 import ChatBubble from './ChatBubble'
 import { getNextPrompt, findProductsByKeyword, findProductsByIntent } from '@/lib/chatEngine'
@@ -17,6 +17,11 @@ async function logInteraction({ userId, question, response }: { userId?: string 
 
 export default function AgentWidget() {
   const { isOpen, setIsOpen, messages, addMessage, products, setProducts } = useAgentStore()
+  const userAnswers = useMemo(() => messages.filter(m => m.sentByUser).map(m => m.text), [messages])
+  const mergedIntent = useMemo(() => {
+    const { mergeIntents } = require('@/lib/chatEngine')
+    return mergeIntents(userAnswers.map(require('@/lib/nlu/intentParser').parseIntent))
+  }, [userAnswers])
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -125,11 +130,27 @@ export default function AgentWidget() {
             </button>
           </form>
           {products.length > 0 && (
-            <div className="p-4 border-t flex flex-wrap gap-4 justify-center bg-gray-50">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="p-4 border-t flex flex-wrap gap-4 justify-center bg-gray-50">
+                {products.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              {/* Smart navigation link */}
+              {mergedIntent.category && (
+                <div className="p-4 text-center">
+                  <a
+                    href={`/products/${mergedIntent.category}?${mergedIntent.color ? `color=${mergedIntent.color}&` : ''}${mergedIntent.size ? `size=${mergedIntent.size}` : ''}`}
+                    className="text-blue-600 underline hover:text-blue-800"
+                    target="_blank"
+                  >
+                    Browse all {mergedIntent.category}
+                    {mergedIntent.color ? ` in ${mergedIntent.color}` : ''}
+                    {mergedIntent.size ? `, size ${mergedIntent.size}` : ''}
+                  </a>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
